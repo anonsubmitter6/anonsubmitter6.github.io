@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPARK: Sequential Planning via Anchored Robotic Keypoints</title>
+<meta name="description" content="SPARK separates a task's symbolic plan from its execution-time perceptual grounding: 77.8% mean success on six LIBERO-PRO settings and 75% across eleven physical task-embodiment settings on three robot platforms, without task-specific model training.">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="static/media/favicon.png">
+
+<link rel="stylesheet" href="static/css/bulma.min.css">
+<link rel="stylesheet" href="static/css/spark.css">
+
+<script type="importmap">
+{ "imports": { "three": "./static/js/three.module.js" } }
+</script>
+<style>
+.result-table{ width:100%; margin:0 auto 1.2rem; font-size:.86rem; border-collapse:collapse; }
+.result-table th, .result-table td{ padding:.32rem .45rem; text-align:center; border-bottom:1px solid #e6e4dc; }
+.result-table th:first-child, .result-table td:first-child{ text-align:left; }
+.result-table thead th{ border-bottom:2px solid #1c1c1c; }
+.result-table tr.ours td{ font-weight:600; }
+.result-table tr.rule td{ border-top:2px solid #1c1c1c; }
+.result-note{ font-size:.8rem; color:#666; margin:-.6rem 0 1.6rem; }
+</style>
+</head>
+<body>
+
+<!-- title, authors, links -->
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">SPARK</h1>
+          <p class="subtitle is-3 spark-expand">Sequential Planning via Anchored Robotic Keypoints</p>
+          <p class="is-size-5 publication-authors">Anonymous authors. Paper under double-blind review.</p>
+
+          <div class="publication-links">
+            <a class="btn-link" href="https://github.com/anonsubmitter6/spark-code" target="_blank" rel="noopener"><svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" fill-rule="evenodd"/></svg><span>Code</span></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3D music hero: the real score-visualizer medley, embedded, with the task menu over it -->
+<section class="coil-section">
+  <iframe id="hero-frame" src="score_visualizer/index.html?score=medley&ui=0" title="SPARK medley score" loading="eager"></iframe>
+  <p class="score-legend" style="margin:.6rem auto 0;max-width:760px;font-size:.85rem;color:#666;text-align:center;">How to read the score: note position encodes the action category, duration its type, and dynamics the gripper force. Phrases play legato, waypoints blending without stops. <strong>Click any task to watch its rollout video.</strong></p>
+  <div class="score-menu">
+    <button class="menu-item" data-task="0"><img src="static/media/thumbs/sweep.jpg" alt=""><span>Sweep<em>FR3</em></span></button>
+    <button class="menu-item" data-task="1"><img src="static/media/thumbs/mug.jpg" alt=""><span>Pour<em>FR3</em></span></button>
+    <button class="menu-item" data-task="2"><img src="static/media/thumbs/silverware.jpg" alt=""><span>Utensils<em>FR3</em></span></button>
+    <button class="menu-item" data-task="3"><img src="static/media/thumbs/fold_fr3.jpg" alt=""><span>Fold<em>FR3</em></span></button>
+    <button class="menu-item" data-task="4"><img src="static/media/thumbs/sponge.jpg" alt=""><span>Sponge<em>FR3</em></span></button>
+    <button class="menu-item" data-task="5"><img src="static/media/thumbs/plushie.jpg" alt=""><span>Plushie<em>UR10e</em></span></button>
+    <button class="menu-item" data-task="6"><img src="static/media/thumbs/util_tray_ur.jpg" alt=""><span>Utensils<em>UR10e</em></span></button>
+    <button class="menu-item" data-task="7"><img src="static/media/thumbs/fold_bi.jpg" alt=""><span>Fold<em>Bimanual</em></span></button>
+    <button class="menu-item" data-task="8"><img src="static/media/thumbs/nut.jpg" alt=""><span>Nut<em>CaP-Bench</em></span></button>
+    <button class="menu-item" data-task="9"><img src="static/media/thumbs/bluestack.jpg" alt=""><span>Stack<em>UR10e</em></span></button>
+    <button class="menu-item" data-task="10"><img src="static/media/thumbs/liberopro_object_cream_cheese.jpg" alt=""><span>Basket<em>LIBERO-PRO</em></span></button>
+    <button class="menu-item" data-task="11"><img src="static/media/thumbs/liberopro_spatial_next_ramekin.jpg" alt=""><span>Plate<em>LIBERO-PRO</em></span></button>
+  </div>
+</section>
+
+<!-- abstract -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            Changes to what a robot can see do not mean that there is a change in the problem it is trying to solve,
+            and many language-conditioned manipulation systems struggle with this distinction. When something in a
+            scene moves, the robot might need to execute its actions in different places, but its manipulation plan
+            can stay the same. We propose Sequential Planning via Anchored Robotic Keypoints
+            (<span class="sc">Spark</span>), which describes a task as a symbolic behavior tree that we anchor to the
+            current 3D observations when each action is called. By verifying the plan at runtime we can recover from
+            failures locally and anchor the objects to the scene again. We ask for a new plan only if this fails. We
+            isolate this concept by taking a fixed plan and moving objects in the scene while executing. When
+            displacing objects by 10&nbsp;cm we were still able to complete <strong>60.0%</strong> of trials with
+            scene-diff verification and layered recovery, and we did not have to change the plan. We test our full system, with one open-weight 27B planner with 4-bit weights, on LIBERO-PRO.
+            SPARK achieves a mean success of <strong>74.4%</strong> across the 6 position and task settings when the robot decides to retry from its own checks, and
+            <strong>77.8%</strong> when it also reads a success check after each attempt, as in prior work. We also achieve a
+            <strong>75%</strong> success rate across 11 physical task-embodiment settings on 3 different robots. Our
+            work demonstrates that for an important class of failures, the robot does not need to ask for a new plan
+            for its task. It can be enough to update the system's view of the world.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- approach -->
+<section class="section approach">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3 has-text-centered">Composing the score</h2>
+        <figure class="arch-fig">
+          <img src="static/media/figs/arch.png" alt="SPARK architecture: perception, plan, execute">
+          <figcaption>
+            Left: perception locates objects as 3D keypoints. Center: one language-model call writes the score, a behavior
+            tree whose notes are skills from a fixed library. Right: the robot executes each skill at current object
+            locations and checks its post-condition; the red path is recovery.
+          </figcaption>
+        </figure>
+        <div class="content has-text-justified">
+          <p>
+            SAM3 grounds the objects seen by the platform cameras. The
+            LIBERO-PRO results use the open-weight Qwen3.8-27B with 4-bit weights, served locally. The UR10e uses the same planner, and the FR3 and bimanual setups use Gemini. Actions reference objects by label, and at execution time
+            each label is grounded to a current 3D position. A modified instruction can invalidate the plan, while a
+            moved object only makes the plan's object locations incorrect. Putting the bowl on the plate should use the same
+            score whether the bowl started on the left or the right. SPARK keeps the plan and updates what perception says about the scene.
+          </p>
+          <p>
+            Each skill checks a post-condition. When a check fails, up to three tiers of recovery are tried in order.
+            Tier 1 is an in-place correction, like a small motion and a re-grasp. Tier 2 is re-perception: retract the
+            arm 10 cm, run SAM3 again, and re-execute the same plan with updated object locations. Tier 3 asks the
+            language model for a replacement plan, but only after the execution attempt is exhausted. Tiers 1 and 2
+            keep the behavior tree and need no language-model call. Over thirty registered skills, built on five base primitives, implement closed-loop behaviors such as
+            descending until contact. All skills were written with Claude Code against a typed contract and checked by the authors.
+          </p>
+          <p>
+            In simulation, one additional language-model call suggests three prompts per object, and SAM3 confidence
+            selects the detection. LIBERO-PRO adds two more grounding steps. The planner
+            chooses an uncertain pick target from numbered wrist-camera crops taken at the home pose. When a scene has
+            multiple copies of an object, a hand-coded rule picks one from the relation in the instruction (between,
+            next to, on, in) without asking the language model. Physical robots use one prompt per object.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- results -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3 has-text-centered">Results</h2>
+
+        <h3 class="title is-5 has-text-centered">LIBERO-PRO</h3>
+        <p class="has-text-centered content">
+          Success rates (%) on six settings: three suites, each with position (Pos) and task (Task) perturbations, 10
+          tasks &times; 50 trials on LIBERO-PRO's own initial states. SPARK uses the open-weight Qwen3.8-27B planner. Under the RATS protocol a
+          success check after each attempt decides whether to retry, as in the RATS evaluation. Under the strict protocol only the robot's own
+          checks decide, and the success check is read once at the end of the episode.
+        </p>
+        <div style="overflow-x:auto;">
+        <table class="result-table">
+          <thead>
+            <tr><th>Method</th><th>Object Pos</th><th>Object Task</th><th>Goal Pos</th><th>Goal Task</th><th>Spatial Pos</th><th>Spatial Task</th><th>Mean</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>OpenVLA</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0.0</td></tr>
+            <tr><td>pi0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0.0</td></tr>
+            <tr><td>pi0.5</td><td>17</td><td>1</td><td>38</td><td>0</td><td>20</td><td>1</td><td>12.8</td></tr>
+            <tr><td>MolmoAct2</td><td>47.2</td><td>0.0</td><td>29.0</td><td>12.0</td><td>23.0</td><td>0.4</td><td>18.6</td></tr>
+            <tr><td>CaP-Agent0</td><td>22</td><td>18</td><td>26</td><td>17</td><td>12</td><td>14</td><td>18.2</td></tr>
+            <tr><td>CaP-Agent0 (RATS eval)</td><td>27.0</td><td>31.0</td><td>29.0</td><td>16.0</td><td>13.0</td><td>23.0</td><td>23.2</td></tr>
+            <tr><td>RATS</td><td>61.0</td><td>63.0</td><td>43.0</td><td>36.0</td><td>29.0</td><td>31.0</td><td>43.8</td></tr>
+            <tr class="ours rule"><td>SPARK, RATS protocol (ours)</td><td>87.8</td><td>96.0</td><td>68.6</td><td>52.2</td><td>78.0</td><td>84.2</td><td>77.8</td></tr>
+            <tr class="ours"><td>SPARK, strict (ours)</td><td>84.0</td><td>94.6</td><td>62.2</td><td>44.2</td><td>78.8</td><td>82.8</td><td>74.4</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p class="result-note has-text-centered">
+          OpenVLA, pi0, pi0.5, and the original CaP-Agent0 rows are reproduced from the CaP-Agent0 paper;
+          CaP-Agent0 (RATS eval) and RATS are from the RATS paper; MolmoAct2 is our evaluation of the released
+          LIBERO checkpoint.
+        </p>
+        <p class="has-text-centered content">
+          Under the RATS protocol, SPARK attains an average of <strong>77.8%</strong>, an improvement of 34.0 points over RATS (43.8%). SPARK
+          obtains <strong>74.4%</strong> under the strict protocol. For the language and object settings, which were not used to develop the
+          grounding rules, SPARK obtains an average of <strong>69.7%</strong> under the RATS protocol (object 92.4 and 77.4, goal 64.6 and 47.2,
+          spatial 50.8 and 85.8).
+        </p>
+
+        <figure class="result-fig">
+          <img src="static/media/figs/libero_persuite.png" alt="LIBERO-PRO success rates per setting by method, from the table above">
+          <figcaption>
+            The table above as a chart, with SPARK under the RATS protocol. OpenVLA and &pi;<sub>0</sub> score 0 in every cell.
+          </figcaption>
+        </figure>
+
+        <figure class="result-fig result-fig--heat">
+          <img src="static/media/figs/libero_heatmap_spatial.png" alt="Per-task LIBERO-PRO success, spatial suite">
+          <img src="static/media/figs/libero_heatmap_object.png" alt="Per-task LIBERO-PRO success, object suite">
+          <img src="static/media/figs/libero_heatmap_goal.png" alt="Per-task LIBERO-PRO success, goal suite">
+          <figcaption>
+            Per-task success (%), 50 trials per task, RATS protocol. Rows: SPARK position and task, SPARK on the language and object settings (*), and MolmoAct2 position and task.
+          </figcaption>
+        </figure>
+
+        <h3 class="title is-5 has-text-centered" style="margin-top:2.6rem;">Recovering when objects move (LIBERO-Displace)</h3>
+        <p class="has-text-centered content">
+          The target for the pick is displaced by 0 to 10 cm over 40 simulator steps at one of 3 times during the episode, following the
+          same seeded schedule across all arms. We test 10 object-suite tasks &times; 3 displacement phases &times; 5 initial states = 150
+          trials per cell. In all cases, we enable the single recovery mechanism under test while holding plan source, skill set, executor and
+          perception constant. Scene diff monitors for object movement during each move and retargets the move as needed, while the ladder
+          re-binds to new detections, performs local retries and then requests a new plan as necessary. Recoveries are only invoked by the
+          robot's own checks.
+        </p>
+        <div style="overflow-x:auto;">
+        <table class="result-table" style="max-width:760px;">
+          <thead>
+            <tr><th rowspan="2">Recovery</th><th colspan="4">Scripted plans</th><th colspan="4">Planner-written plans</th></tr>
+            <tr><th>0 cm</th><th>2 cm</th><th>5 cm</th><th>10 cm</th><th>0 cm</th><th>2 cm</th><th>5 cm</th><th>10 cm</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Off</td><td>117</td><td>87</td><td>14</td><td>3</td><td>120</td><td>104</td><td>72</td><td>71</td></tr>
+            <tr><td>Scene diff</td><td>105</td><td>82</td><td>43</td><td>8</td><td>123</td><td>101</td><td>80</td><td>73</td></tr>
+            <tr><td>Ladder</td><td>120</td><td>108</td><td>79</td><td>88</td><td>120</td><td>109</td><td>85</td><td>90</td></tr>
+            <tr class="ours"><td>Scene diff + ladder</td><td>123</td><td>101</td><td>84</td><td>90</td><td>123</td><td>109</td><td>99</td><td>107</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p class="has-text-centered content">
+          We report successful trials out of 150. When the displacement is 10 cm and plans are generated from the same script, scene diff and
+          the ladder yield 90/150 successes (<strong>60.0%</strong>) vs 3/150 for no recovery, with plans unchanged. When plans come from the
+          planner, scene diff and the ladder give 107/150 vs 71/150. On the same displaced trials, the ladder obtains 91/150 at 10 cm and
+          72/150 when a new plan is requested after each failure.
+        </p>
+
+        <h3 class="title is-5 has-text-centered" style="margin-top:2.6rem;">CaP-Bench (Robosuite)</h3>
+        <p class="has-text-centered content is-size-6 has-text-grey">
+          Per-task success (%). SPARK and CaP-Agent0 use 100 trials per task; RATS uses its 50-trial skill-transfer
+          evaluation. With the Qwen planner SPARK averages 65.1% against 68.3% for CaP-Agent0's three-model ensemble.
+        </p>
+        <figure class="result-fig">
+          <img src="static/media/figs/capbench.png" alt="CaP-Bench per-task success, CaP-Agent0 vs RATS vs SPARK">
+        </figure>
+
+        <h3 class="title is-5 has-text-centered" style="margin-top:2.6rem;">Physical experiments</h3>
+        <p class="has-text-centered content">
+          The same BT grammar and SAM3 pipeline run on UR10e, Franka FR3, and a bimanual
+          Franka setup, without task-specific model training. The UR10e rows use the Qwen3.8-27B planner of the LIBERO-PRO table, and the
+          FR3 and bimanual rows use Gemini 3.5 Flash. Nine tasks span three embodiments (eleven
+          task-embodiment cells), 20 trials per cell, objects randomly placed and rotated per trial. All
+          physical runs use hardware depth and single-description perception.
+        </p>
+        <table class="result-table" style="max-width:640px;">
+          <thead>
+            <tr><th>Embodiment</th><th>Task</th><th>Planner</th><th>Success (%)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>UR10e</td><td>Utensils in bowl</td><td>Qwen3.8-27B</td><td>90</td></tr>
+            <tr><td>UR10e</td><td>Utensils in tray</td><td>Qwen3.8-27B</td><td>100</td></tr>
+            <tr><td>UR10e</td><td>Plushie in bowl</td><td>Qwen3.8-27B</td><td>100</td></tr>
+            <tr><td>UR10e</td><td>Stack blocks</td><td>Qwen3.8-27B</td><td>95</td></tr>
+            <tr><td>FR3</td><td>Utensils in tray</td><td>Gemini 3.5 Flash</td><td>80</td></tr>
+            <tr><td>FR3</td><td>Sponge-wash plate</td><td>Gemini 3.5 Flash</td><td>100</td></tr>
+            <tr><td>FR3</td><td>Mug pour</td><td>Gemini 3.5 Flash</td><td>65</td></tr>
+            <tr><td>FR3</td><td>Sweep to dustpan</td><td>Gemini 3.5 Flash</td><td>55</td></tr>
+            <tr><td>FR3</td><td>T-shirt fold</td><td>Gemini 3.5 Flash</td><td>50</td></tr>
+            <tr><td>Bimanual</td><td>T-shirt fold</td><td>Gemini 3.5 Flash</td><td>30</td></tr>
+            <tr><td>Bimanual</td><td>Silverware sort</td><td>Gemini 3.5 Flash</td><td>60</td></tr>
+            <tr class="ours rule"><td colspan="3">Mean (11 cells)</td><td>75</td></tr>
+          </tbody>
+        </table>
+        <p class="has-text-centered content">
+          SPARK achieves 165/220 = <strong>75.0%</strong> success. The same utensils-in-tray task runs on two platforms, achieving 20/20
+          (UR10e) and 16/20 (FR3) successes. With manual displacements of objects during task execution, we achieve 10/10 successes on the UR10e
+          for Utensils in tray, Stack blocks and Plushie in bowl, and 8/10 for Utensils in bowl. On
+          the bimanual platform, sleeve folding succeeds in 15/20 trials, while the complete three-fold sequence
+          succeeds in 6/20.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- real-robot rollouts -->
+<section class="section" id="video">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">Real &amp; Sim rollouts</h2>
+    <p class="has-text-centered content is-size-7 has-text-grey"><strong>Click a rollout to open its score.</strong></p>
+    <div class="columns is-multiline is-centered">
+      <div class="column is-one-third"><div class="vcard" data-score="mug_pour"><video src="score_visualizer/videos/mug_pour2_side.mp4" autoplay muted loop playsinline></video><p>Mug pour<span class="emb">Franka FR3</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="sweep_cubes"><video src="score_visualizer/videos/sweep2_bird.mp4" autoplay muted loop playsinline></video><p>Sweep to dustpan<span class="emb">Franka FR3, bird's-eye camera</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="fold"><video src="static/media/real/fold_fr3.mp4" autoplay muted loop playsinline></video><p>T-shirt fold<span class="emb">Franka FR3</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="silverware"><video src="score_visualizer/videos/silverware_bird.mp4" autoplay muted loop playsinline></video><p>Utensils in tray<span class="emb">Franka FR3, bird's-eye camera</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="bimanual_fold"><video src="score_visualizer/videos/fold_bi_green.mp4" autoplay muted loop playsinline></video><p>T-shirt fold<span class="emb">Bimanual Franka</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="ur10e_plushie"><video src="score_visualizer/videos/ur10e_plushie_bird.mp4" autoplay muted loop playsinline></video><p>Plushie in bowl<span class="emb">UR10e</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="ur10e_utensils"><video src="score_visualizer/videos/ur10e_side_utensil.mp4" autoplay muted loop playsinline></video><p>Utensils in tray<span class="emb">UR10e</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="ur10e_goldstack"><video src="score_visualizer/videos/ur10e_goldstack.mp4" autoplay muted loop playsinline></video><p>Gold block stack<span class="emb">UR10e</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="sponge_soap"><video src="score_visualizer/videos/sponge3.mp4" autoplay muted loop playsinline></video><p>Sponge wash<span class="emb">Franka FR3, repeat trial</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="bimanual_fold"><video src="score_visualizer/videos/fold_bi_fail_blue.mp4" autoplay muted loop playsinline></video><p>T-shirt fold failure case<span class="emb">Bimanual Franka, partial fold on blue shirt</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="bimanual_fold"><video src="score_visualizer/videos/fold_bi_fail_pinch.mp4" autoplay muted loop playsinline></video><p>T-shirt fold failure case<span class="emb">Bimanual Franka, missed hem pinch</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="capbench_lift"><video src="score_visualizer/videos/capbench_lift.mp4" autoplay muted loop playsinline></video><p>Lift<span class="emb">CaP-Bench sim</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="capbench_stack"><video src="score_visualizer/videos/capbench_stack.mp4" autoplay muted loop playsinline></video><p>Stack<span class="emb">CaP-Bench sim</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="capbench_cuberestack"><video src="score_visualizer/videos/capbench_cuberestack.mp4" autoplay muted loop playsinline></video><p>Cube restack<span class="emb">CaP-Bench sim</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="capbench_twoarmlift"><video src="score_visualizer/videos/capbench_twoarmlift.mp4" autoplay muted loop playsinline></video><p>Two-arm lift<span class="emb">CaP-Bench sim</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="capbench_wipe"><video src="score_visualizer/videos/capbench_wipe.mp4" autoplay muted loop playsinline></video><p>Wipe<span class="emb">CaP-Bench sim</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="capbench_nut"><video src="score_visualizer/videos/capbench_nut.mp4" autoplay muted loop playsinline></video><p>Nut assembly<span class="emb">CaP-Bench sim</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="capbench_handover"><video src="score_visualizer/videos/capbench_handover.mp4" autoplay muted loop playsinline></video><p>Two-arm handover<span class="emb">CaP-Bench sim</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="liberopro_object_cream_cheese"><video src="score_visualizer/videos/liberopro_object_cream_cheese.mp4" autoplay muted loop playsinline></video><p>Cream cheese to basket<span class="emb">LIBERO-PRO, object suite, pass</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="liberopro_object_milk"><video src="score_visualizer/videos/liberopro_object_milk.mp4" autoplay muted loop playsinline></video><p>Milk to basket<span class="emb">LIBERO-PRO, object suite, pass</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="liberopro_spatial_next_ramekin"><video src="score_visualizer/videos/liberopro_spatial_next_ramekin.mp4" autoplay muted loop playsinline></video><p>Bowl next to ramekin onto plate<span class="emb">LIBERO-PRO, spatial suite, pass</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="liberopro_spatial_table_center"><video src="score_visualizer/videos/liberopro_spatial_table_center.mp4" autoplay muted loop playsinline></video><p>Bowl from table center onto plate<span class="emb">LIBERO-PRO, spatial suite, pass</span></p></div></div>
+      <div class="column is-one-third"><div class="vcard" data-score="liberopro_goal_cheese_bowl"><video src="score_visualizer/videos/liberopro_goal_cheese_bowl.mp4" autoplay muted loop playsinline></video><p>Cream cheese in bowl<span class="emb">LIBERO-PRO, goal suite, pass</span></p></div></div>
+    </div>
+    
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="content has-text-centered">
+      <p class="is-size-7">
+        Page built on the <a href="https://github.com/nerfies/nerfies.github.io">Nerfies</a> template
+        (<a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>).
+      </p>
+    </div>
+  </div>
+</footer>
+
+<!-- score modal (opened by clicking a real-robot rollout) -->
+<div class="modal" id="score-modal">
+  <div class="modal-background"></div>
+  <div class="modal-content" style="width:92vw;max-width:1080px;">
+    <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.25);">
+      <iframe id="score-modal-frame" title="score" style="width:100%;height:72vh;border:0;display:block;"></iframe>
+      <div id="score-modal-soon" style="display:none;align-items:center;justify-content:center;height:46vh;flex-direction:column;font-family:system-ui, -apple-system, 'Segoe UI', sans-serif;color:#777;">
+        <p style="font-size:1.2rem;color:#2a2a2a;">Score coming soon</p>
+        <p class="is-size-7">This rollout's behavior tree will be added here.</p>
+      </div>
+    </div>
+  </div>
+  <button class="modal-close is-large" aria-label="close"></button>
+</div>
+
+<script>
+// Drive the embedded medley's section separation from the task blocks.
+(function () {
+  var f = document.getElementById('hero-frame');
+  function post(action, sec) { if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'hero', action: action, sec: sec }, '*'); }
+  document.querySelectorAll('.menu-item').forEach(function (el) {
+    var k = parseInt(el.dataset.task);
+    el.addEventListener('mouseenter', function () { post('hover', k); });
+    el.addEventListener('mouseleave', function () { post('leave'); });
+    el.addEventListener('click', function () { post('select', k); });
+  });
+})();
+
+// Click a real-robot rollout -> open its score in a modal (content for some is added later).
+(function () {
+  var modal = document.getElementById('score-modal');
+  var frame = document.getElementById('score-modal-frame');
+  var soon = document.getElementById('score-modal-soon');
+  if (!modal) return;
+  function open(score) {
+    if (score) {
+      frame.src = 'score_visualizer/index.html?score=' + score + '&ui=0&nointro=1';
+      frame.style.display = 'block'; soon.style.display = 'none';
+    } else {
+      frame.removeAttribute('src'); frame.style.display = 'none'; soon.style.display = 'flex';
+    }
+    modal.classList.add('is-active');
+  }
+  function close() { modal.classList.remove('is-active'); frame.removeAttribute('src'); }
+  document.querySelectorAll('#video .vcard').forEach(function (c) {
+    c.style.cursor = 'pointer';
+    c.addEventListener('click', function () { open(c.dataset.score || ''); });
+  });
+  modal.querySelector('.modal-background').addEventListener('click', close);
+  modal.querySelector('.modal-close').addEventListener('click', close);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+})();
+</script>
+</body>
+</html>
